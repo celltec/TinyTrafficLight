@@ -1,19 +1,22 @@
 #include <avr/io.h>
 
+/* Makros */
 #define SET(bit)        (PORTB |=  (1 << bit))
 #define CLEAR(bit)      (PORTB &= ~(1 << bit))
 #define TOGGLE(bit)     (PORTB ^=  (1 << bit))
 #define READ(bit)       ((PINB  &  (1 << bit)) == 0)
 
+/* Definitionen */
 #define LED_RED         PB1
 #define LED_YELLOW      PB2
 #define LED_GREEN       PB3
 #define BUTTON          PB4
 #define JUMPER          PB5
 
+/* Funktionsprototypen */
 uint16_t readAnalog(void);
 void delay(uint16_t ms);
-void doAmpelThings(void);
+void doAmpelThings(uint8_t enableDelay);
 void blink(uint16_t ms);
 
 int main(void)
@@ -24,12 +27,13 @@ int main(void)
 
 	/* ADC initialisieren */
 	ADMUX |= (1 << REFS0) | (1 << MUX2);     // Referenzspannung AVcc und Kanal 4
-	ADCSRA |= (1 << ADEN) | (1 << ADSC);     // ADC Aktivieren
-	while (ADCSRA & (1 << ADSC));            // Erst einsatzbereit nach einmaligem Lesen
+	ADCSRA |= (1 << ADEN);                   // ADC Aktivieren
+	ADCSRA |= (1<<ADSC);                     // Erst einsatzbereit nach einmaligem Lesen
+	while (ADCSRA & (1 << ADSC));            // "dummy read"
 	(void)ADCW;                              // Ergebnis ignorieren
 
 	/* GPIO initialisieren */
-	DDRB = 0b00001110;             // Ein und Ausgänge definieren
+	DDRB  = 0b00001110;            // Ein und Ausgänge definieren
 	PORTB = 0b00110000;            // Interne Pull-Up Widerstände aktivieren
 
 	while (1)
@@ -45,7 +49,7 @@ int main(void)
 
 		if (READ(BUTTON))
 		{
-			blink(readAnalog() << 2UL);      // Shift nach links um die Zeit mit vier zu multiplizieren
+			blink(readAnalog() << 2UL);     // Shift nach links um die Zeit mit vier zu multiplizieren
 		}
 		else
 		{
@@ -70,8 +74,8 @@ void delay(uint16_t ms)
 {
 	while (ms--)
 	{
-		TCNT0 = 209;                  // Vorladen
-		while (TCNT0);                // Auf Überlauf warten
+		TCNT0 = 209;       // Vorladen
+		while (TCNT0);     // Auf Überlauf warten
 	}
 }
 
