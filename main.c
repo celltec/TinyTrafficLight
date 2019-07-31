@@ -12,11 +12,9 @@
 #define JUMPER          PB5
 
 uint16_t readAnalog(void);
-inline void delay(uint16_t ms);
+void delay(uint16_t ms);
 void doAmpelThings(void);
 void blink(uint16_t ms);
-
-volatile uint8_t enableDelay = 0;
 
 int main(void)
 {
@@ -25,34 +23,33 @@ int main(void)
 	TCCR0B |= (1 << CS02);         // Pre-scaler: 256
 
 	/* ADC initialisieren */
-	ADMUX  |= (1 << REFS0) | (1 << MUX2);     // Referenzspannung AVcc und Kanal 4
-	ADCSRA |= (1 << ADEN);                    // ADC Aktivieren
+	ADMUX |= (1 << REFS0) | (1 << MUX2);     // Referenzspannung AVcc und Kanal 4
+	ADCSRA |= (1 << ADEN) | (1 << ADSC);     // ADC Aktivieren
+	while (ADCSRA & (1 << ADSC));            // Erst einsatzbereit nach einmaligem Lesen
+	(void)ADCW;                              // Ergebnis ignorieren
 
 	/* GPIO initialisieren */
-	DDRB  = 0b00001110;            // Ein und Ausgänge definieren
-	PORTB = 0b00110000;            // Interne Pull-Up Widerstände aktivieren
+	DDRB = 0b00001110;             // Ein und AusgÃ¤nge definieren
+	PORTB = 0b00110000;            // Interne Pull-Up WiderstÃ¤nde aktivieren
 
 	while (1)
 	{
-		if (READ(JUMPER))
+		while (READ(JUMPER))
 		{
 			if (READ(BUTTON))
 			{
-				enableDelay = 0;
-				doAmpelThings();
+				doAmpelThings(0);
 				delay(150);
 			}
-			continue;
 		}
 
 		if (READ(BUTTON))
 		{
-			blink(readAnalog() << 2UL);     // Shift nach links um die Zeit zu vervielfachen => (t * 4)
+			blink(readAnalog() << 2UL);      // Shift nach links um die Zeit mit vier zu multiplizieren
 		}
 		else
 		{
-			enableDelay = 1;
-			doAmpelThings();
+			doAmpelThings(1);
 		}
 	}
 
@@ -64,21 +61,21 @@ uint16_t readAnalog(void)
 	uint16_t val;
 	ADCSRA |= (1 << ADSC);            // Konvertierung starten
 	while (ADCSRA & (1 << ADSC));     // Warten bis Werte gemessen wurden
-	val = ADCL;                       // Low lesen (Bits 1 bis 8)
+	val = (uint16_t)ADCL;             // Low lesen (Bits 1 bis 8)
 	val |= (ADCH << 8);               // High lesen (Bit 9 und 10)
 	return val;
 }
 
-inline void delay(uint16_t ms)
+void delay(uint16_t ms)
 {
 	while (ms--)
 	{
 		TCNT0 = 209;                  // Vorladen
-		while (TCNT0);                // Auf Überlauf warten
+		while (TCNT0);                // Auf Ãœberlauf warten
 	}
 }
 
-void doAmpelThings(void)
+void doAmpelThings(uint8_t enableDelay)
 {
 	static uint8_t step = 0;
 
