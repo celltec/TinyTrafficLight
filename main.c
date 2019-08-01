@@ -1,19 +1,19 @@
 #include <avr/io.h>
 
-/* Makros */
+/*** Makros ***/
 #define SET(bit)        (PORTB |=  (1 << bit))
 #define CLEAR(bit)      (PORTB &= ~(1 << bit))
 #define TOGGLE(bit)     (PORTB ^=  (1 << bit))
 #define READ(bit)       ((PINB  &  (1 << bit)) == 0)
 
-/* Definitionen */
+/*** Definitionen ***/
 #define LED_RED         PB1
 #define LED_YELLOW      PB2
 #define LED_GREEN       PB3
 #define BUTTON          PB4
 #define JUMPER          PB5
 
-/* Funktionsprototypen */
+/*** Funktionsprototypen ***/
 uint16_t readAnalog(void);
 void delay(uint16_t ms);
 void stepTrafficLight(uint8_t enableDelay);
@@ -21,18 +21,18 @@ void blink(uint16_t ms);
 
 int main(void)
 {
-    /* Timer initialisieren */
+    /*** Timer initialisieren ***/
     TCCR0A = 0x0;                           // Timer in normal mode initialisieren
-    TCCR0B |= (1 << CS02);                  // Pre-scaler: 256
+    TCCR0B |= (1 << CS02);                  // Prescaler: 256
 
-    /* ADC initialisieren */
+    /*** ADC initialisieren ***/
     ADMUX |= (1 << REFS0) | (1 << MUX2);    // Referenzspannung AVcc und Kanal 4
     ADCSRA |= (1 << ADEN);                  // ADC Aktivieren
     ADCSRA |= (1 << ADSC);                  // Erst einsatzbereit nach einmaligem Lesen
     while (ADCSRA & (1 << ADSC));           // "Dummy read"
     (void)ADCW;                             // Ergebnis ignorieren
 
-    /* GPIO initialisieren */
+    /*** GPIO initialisieren ***/
     DDRB = 0b00001110;                      // Ein und Ausgänge definieren
     PORTB = 0b00110000;                     // Interne Pull-Up Widerstände aktivieren
 
@@ -49,7 +49,7 @@ int main(void)
 
         while (READ(BUTTON))                // Gelb blinken, solange der Knopf gedrückt wird (ohne Jumper)
         {                                   // Die Blinkgeschwindigkeit richtet sich nach dem Potentiometer
-            blink(readAnalog() << 2UL);     // Shift nach links um die Zeit mit vier zu multiplizieren
+            blink(readAnalog() + 50);       // Offset von 50 Millisekunden -> Maximale Blinkfrequenz 20Hz
         }
 
         stepTrafficLight(1);                // Ansonsten die Ampel automatisch schalten lassen
@@ -72,7 +72,7 @@ void delay(uint16_t ms)
 {
     while (ms--)
     {
-        TCNT0 = 209;                        // Vorladen
+        TCNT0 = 209;                        // Vorladen: { 2^[ADC_bits] - ([F_CPU] * 0,001 / [Prescaler]) }
         while (TCNT0);                      // Auf Überlauf warten
     }
 }
@@ -83,23 +83,23 @@ void stepTrafficLight(uint8_t enableDelay)
 
     switch (step++)
     {
-    case 0:
+    case 0: /* Rot */
         SET(LED_RED);
         CLEAR(LED_YELLOW);
         CLEAR(LED_GREEN);
         if (enableDelay) delay(2400);
         break;
-    case 1:
+    case 1: /* Rot-Gelb */
         SET(LED_YELLOW);
         if (enableDelay) delay(600);
         break;
-    case 2:
+    case 2: /* Grün */
         CLEAR(LED_RED);
         CLEAR(LED_YELLOW);
         SET(LED_GREEN);
         if (enableDelay) delay(2400);
         break;
-    case 3:
+    case 3: /* Gelb */
         CLEAR(LED_GREEN);
         SET(LED_YELLOW);
         step = 0;
