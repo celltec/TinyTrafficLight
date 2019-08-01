@@ -3,7 +3,6 @@ TARGET = firmware
 MCU = atmega168
 SRC = main.c
 CFLAGS = -mmcu=$(MCU) -Os -Wall -Werror
-CPPFLAGS =
 
 # executables
 CC      = avr-gcc
@@ -12,8 +11,7 @@ SIZE    = avr-size --format=avr --mcu=$(MCU)
 
 # generate list of objects
 CFILES    = $(filter %.c, $(SRC))
-CPPFILES  = $(filter %.cpp, $(SRC))
-OBJ       = $(CFILES:.c=.o) $(CPPFILES:.cpp=.o)
+OBJ       = $(CFILES:.c=.o)
 
 # compile all files
 all: $(TARGET).hex
@@ -26,10 +24,6 @@ clean:
 # objects from c files
 .c.o:
 	$(CC) $(CFLAGS) -c $< -o $@
-
-# objects from c++ files
-.cpp.o:
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 # elf file
 $(TARGET).elf: $(OBJ)
