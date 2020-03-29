@@ -1,4 +1,4 @@
 # TinyTrafficLight
-### Traffic light circuit with a microcontroller, button and potentiometer.
+Traffic light circuit with a microcontroller, button and potentiometer
 
-![breadboard](https://raw.githubusercontent.com/celltec/TinyTrafficLight/master/Breadboard.jpg)
+![breadboard](https://github.com/celltec/TinyTrafficLight/blob/master/Breadboard.jpg?raw=true)
